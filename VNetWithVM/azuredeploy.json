@@ -1,0 +1,160 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "ServerVirtualMachineAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ServerVirtualMachineAdminPassword": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "AvailabilitySetName": "[take(concat('AvailSet-', uniqueString(resourceGroup().id)),80)]",
+    "MachineVhdStorageAccount": "[take(concat('vhdstor', tolower(uniqueString(resourceGroup().id))),24)]",
+    "ServerVirtualMachineName": "[take(concat('serv-', uniqueString(resourceGroup().id)), 15)]",
+    "ServerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', take(concat('VNet-', uniqueString(resourceGroup().id)),24))]",
+    "ServerVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
+    "ServerVirtualMachineNicName": "[concat(variables('ServerVirtualMachineName'), 'NetworkInterface')]"
+
+  },
+  "resources": [
+    {
+      "name": "[variables('AvailabilitySetName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "AvailabilitySet"
+      },
+      "properties": {
+        "platformUpdateDomainCount": 5,
+        "platformFaultDomainCount": 2
+      }
+    },
+    {
+      "name": "[take(concat('VNet-', uniqueString(resourceGroup().id)),24)]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "VirtualNetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24)]",
+            "properties": {
+              "addressPrefix": "10.0.0.0/24"
+            }
+          },
+          {
+            "name": "[take(concat('VNet-Subnet2-', uniqueString(resourceGroup().id)),24)]",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "name": "[variables('MachineVhdStorageAccount')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "MachineVhdStorage"
+      },
+      "kind": "Storage"
+    },
+    {
+      "name": "[variables('ServerVirtualMachineNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', take(concat('VNet-', uniqueString(resourceGroup().id)),24))]"
+      ],
+      "tags": {
+        "displayName": "ServerVirtualMachineNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('ServerVirtualMachineSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('ServerVirtualMachineName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
+      ],
+      "tags": {
+        "displayName": "ServerVirtualMachine"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D2_v2"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('AvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[variables('ServerVirtualMachineName')]",
+          "adminUsername": "[parameters('ServerVirtualMachineAdminUsername')]",
+          "adminPassword": "[parameters('ServerVirtualMachineAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2012-R2-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "ServerVirtualMachineOSDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount')), '2016-01-01').primaryEndpoints.blob, 'vhds', '/', take(concat('serverosdisk', uniqueString(resourceGroup().id)), 24), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
+            }
+          ]
+        }
+      }
+    }
+  ],
+
+  "outputs": {}
+}

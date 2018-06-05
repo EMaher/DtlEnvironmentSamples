@@ -1,0 +1,6 @@
+{
+    "itemDisplayName": "VNet With VM",
+    "githubUsername": "emaher", 
+    "description": "VNet with VM on availability set.",
+    "summary": "VNet with VM on Availability set.  Todo: add load balancer, custom script extension to vm."
+}
