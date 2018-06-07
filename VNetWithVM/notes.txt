@@ -1,0 +1,1 @@
+﻿https://blogs.technet.microsoft.com/markrenoden/2016/11/24/revisit-deploying-a-dc-to-azure-iaas-with-arm-and-dsc/
