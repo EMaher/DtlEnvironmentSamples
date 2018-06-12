@@ -23,7 +23,12 @@
     "DomainControllerVirtualMachineName": "[take(concat('dc-', uniqueString(resourceGroup().id)), 15)]",
     "DomainControllerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "DomainControllerMachineSubnetRef": "[concat(variables('DomainControllerVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
-    "DomainControllerVirtualMachineNicName": "[concat(variables('DomainControllerVirtualMachineName'), 'NetworkInterface')]"
+    "DomainControllerVirtualMachineNicName": "[concat(variables('DomainControllerVirtualMachineName'), 'NetworkInterface')]",
+
+    "ClientVirtualMachineName": "[take(concat('client-', uniqueString(resourceGroup().id)), 15)]",
+    "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+    "ClientVirtualMachineSubnetRef": "[concat(variables('ClientVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
+    "ClientVirtualMachineNicName": "[concat(variables('ClientVirtualMachineName'), 'NetworkInterface')]"
   },
   "resources": [
     {
@@ -229,6 +234,80 @@
           "networkInterfaces": [
             {
               "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('DomainControllerVirtualMachineNicName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[variables('ClientVirtualMachineNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
+      ],
+      "tags": {
+        "displayName": "ClientVmNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('ClientVirtualMachineSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('ClientVirtualMachineName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('ClientVirtualMachineNicName'))]"
+      ],
+      "tags": {
+        "displayName": "ClientVm"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D2_v2"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('AvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[variables('ClientVirtualMachineName')]",
+          "adminUsername": "[parameters('ServerVirtualMachineAdminUsername')]",
+          "adminPassword": "[parameters('ServerVirtualMachineAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2012-R2-Datacenter",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "ClientVmOsDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount')), '2016-01-01').primaryEndpoints.blob, 'vhds', '/', take(concat('cosdisk', uniqueString(resourceGroup().id)), 24), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ClientVirtualMachineNicName'))]"
             }
           ]
         }
