@@ -250,31 +250,7 @@
           ]
         }
       },
-      "resources": [
-        {
-          "name": "ServerConfigScripts",
-          "type": "extensions",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2016-03-30",
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', variables('ServerVirtualMachineName'))]"
-          ],
-          "tags": {
-            "displayName": "ServerConfigScripts"
-          },
-          "properties": {
-            "publisher": "Microsoft.Compute",
-            "type": "CustomScriptExtension",
-            "typeHandlerVersion": "1.4",
-            "autoUpgradeMinorVersion": true,
-            "settings": {
-              "fileUris": [
-                "[concat(parameters('_artifactsLocation'), '/CustomScripts/ServerConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
-              ],
-               "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ServerConfigScripts.ps1')]"
-           }
-          }
-        }
+      "resources": [        
       ]
     },
     {
@@ -350,31 +326,7 @@
           ]
         }
       },
-      "resources": [
-        {
-          "name": "ClientConfigScripts",
-          "type": "extensions",
-          "location": "[resourceGroup().location]",
-          "apiVersion": "2016-03-30",
-          "dependsOn": [
-            "[resourceId('Microsoft.Compute/virtualMachines', variables('ClientVirtualMachineName'))]"
-          ],
-          "tags": {
-            "displayName": "ClientConfigScripts"
-          },
-          "properties": {
-            "publisher": "Microsoft.Compute",
-            "type": "CustomScriptExtension",
-            "typeHandlerVersion": "1.4",
-            "autoUpgradeMinorVersion": true,
-            "settings": {
-              "fileUris": [
-                "[concat(parameters('_artifactsLocation'), '/CustomScripts/ClientConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
-              ],
-              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ClientConfigScripts.ps1')]"
-            }
-          }
-        }
+      "resources": [ 
       ]
     }
   ],
