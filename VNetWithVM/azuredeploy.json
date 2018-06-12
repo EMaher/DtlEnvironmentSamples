@@ -32,6 +32,8 @@
     "ServerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "ServerVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "ServerVirtualMachineNicName": "[take(concat('serv-nic-', uniqueString(resourceGroup().id)),80)]",
+    "ServerPublicIpName": "[take(concat('serv-pip-', uniqueString(resourceGroup().id)),80)]",
+    "ServerPublicIpDnsName": "[take(concat('serv', uniqueString(resourceGroup().id)), 15)]",
 
     "DomainControllerVirtualMachineName": "[take(concat('dc-', uniqueString(resourceGroup().id)), 15)]",
     "DomainControllerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
@@ -42,6 +44,7 @@
     "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "ClientVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]"
+
   },
   "resources": [
     {
@@ -178,12 +181,29 @@
       }
     },
     {
+      "name": "[variables('ServerPublicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "serverpublicip"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('ServerPublicIpDnsName')]"
+        }
+      }
+    },
+    {
       "name": "[variables('ServerVirtualMachineNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[resourceGroup().location]",
       "apiVersion": "2016-03-30",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
       ],
       "tags": {
         "displayName": "ServerVmNic"
@@ -196,6 +216,9 @@
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
                 "id": "[variables('ServerVirtualMachineSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
               }
             }
           }
@@ -271,8 +294,8 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/CustomScripts/ServerConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
               ],
-               "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ServerConfigScripts.ps1')]"
-           }
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ServerConfigScripts.ps1')]"
+            }
           }
         }
       ]
