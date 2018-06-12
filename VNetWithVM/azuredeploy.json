@@ -294,7 +294,7 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/CustomScripts/ServerConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "where /r . ServerConfigScripts.ps1 | powershell -ExecutionPolicy Unrestricted"
+              "commandToExecute": "PowerShell -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ServerConfigScripts.ps1 -recurse | select -expand FullName)}\""
             }
           }
         }
@@ -394,7 +394,7 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/CustomScripts/ClientConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "where /r . ClientConfigScripts.ps1 | powershell -ExecutionPolicy Unrestricted"
+              "commandToExecute": "PowerShell -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ClientConfigScripts.ps1 -recurse | select -expand FullName)}\""
             }
           }
         }
