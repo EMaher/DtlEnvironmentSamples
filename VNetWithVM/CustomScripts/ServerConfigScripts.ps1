@@ -1,3 +1,3 @@
 <# Custom Script for Windows #>
 
-Add-Content $env:Temp\scriptInfo.txt "Script ran $(Get-Date)"
+Add-Content $env:HomeDrive\temp\scriptInfo.txt "Script ran $(Get-Date)"
