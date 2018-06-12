@@ -2,33 +2,46 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "ServerVirtualMachineAdminUserName": {
+    "AdminUserName": {
       "type": "string",
       "minLength": 1
     },
-    "ServerVirtualMachineAdminPassword": {
+    "AdminPassword": {
       "type": "securestring"
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Auto-generated token to access _artifactsLocation"
+      }
     }
   },
   "variables": {
     "AvailabilitySetName": "[take(concat('AvailSet-', uniqueString(resourceGroup().id)),80)]",
     "MachineVhdStorageAccount": "[take(concat('vhdstor', tolower(uniqueString(resourceGroup().id))),24)]",
     "VirtualNetworkName": "[take(concat('VNet-', uniqueString(resourceGroup().id)),24)]",
+    "VirtualNetworkSubnet1Name": "[take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24)]",
 
     "ServerVirtualMachineName": "[take(concat('serv-', uniqueString(resourceGroup().id)), 15)]",
     "ServerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
-    "ServerVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
-    "ServerVirtualMachineNicName": "[concat(variables('ServerVirtualMachineName'), 'NetworkInterface')]",
+    "ServerVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
+    "ServerVirtualMachineNicName": "[take(concat('serv-nic-', uniqueString(resourceGroup().id)),80)]",
 
     "DomainControllerVirtualMachineName": "[take(concat('dc-', uniqueString(resourceGroup().id)), 15)]",
     "DomainControllerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
-    "DomainControllerMachineSubnetRef": "[concat(variables('DomainControllerVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
-    "DomainControllerVirtualMachineNicName": "[concat(variables('DomainControllerVirtualMachineName'), 'NetworkInterface')]",
+    "DomainControllerMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
+    "DomainControllerVirtualMachineNicName": "[take(concat('dc-nic-', uniqueString(resourceGroup().id)),80)]",
 
     "ClientVirtualMachineName": "[take(concat('client-', uniqueString(resourceGroup().id)), 15)]",
     "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
-    "ClientVirtualMachineSubnetRef": "[concat(variables('ClientVirtualMachineVnetID'), '/subnets/', take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24))]",
-    "ClientVirtualMachineNicName": "[concat(variables('ClientVirtualMachineName'), 'NetworkInterface')]"
+    "ClientVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
+    "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]"
   },
   "resources": [
     {
@@ -62,13 +75,13 @@
         },
         "subnets": [
           {
-            "name": "[take(concat('VNet-Subnet1-', uniqueString(resourceGroup().id)),24)]",
+            "name": "[variables('VirtualNetworkSubnet1Name')]",
             "properties": {
               "addressPrefix": "10.0.0.0/24"
             }
           },
           {
-            "name": "[take(concat('VNet-Subnet2-', uniqueString(resourceGroup().id)),24)]",
+            "name": "[take(concat('VNet-Subnet2-', uniqueString(resourceGroup().id)),80)]",
             "properties": {
               "addressPrefix": "10.0.1.0/24"
             }
@@ -76,7 +89,6 @@
         ]
       }
     },
-
     {
       "name": "[variables('MachineVhdStorageAccount')]",
       "type": "Microsoft.Storage/storageAccounts",
@@ -92,80 +104,6 @@
       "kind": "Storage"
     },
     {
-      "name": "[variables('ServerVirtualMachineNicName')]",
-      "type": "Microsoft.Network/networkInterfaces",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2016-03-30",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
-      ],
-      "tags": {
-        "displayName": "ServerVirtualMachineNic"
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "privateIPAllocationMethod": "Dynamic",
-              "subnet": {
-                "id": "[variables('ServerVirtualMachineSubnetRef')]"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "[variables('ServerVirtualMachineName')]",
-      "type": "Microsoft.Compute/virtualMachines",
-      "location": "[resourceGroup().location]",
-      "apiVersion": "2015-06-15",
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount'))]",
-        "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
-      ],
-      "tags": {
-        "displayName": "ServerVirtualMachine"
-      },
-      "properties": {
-        "hardwareProfile": {
-          "vmSize": "Standard_B2s"
-        },
-        "availabilitySet": {
-          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('AvailabilitySetName'))]"
-        },
-        "osProfile": {
-          "computerName": "[variables('ServerVirtualMachineName')]",
-          "adminUsername": "[parameters('ServerVirtualMachineAdminUsername')]",
-          "adminPassword": "[parameters('ServerVirtualMachineAdminPassword')]"
-        },
-        "storageProfile": {
-          "imageReference": {
-            "publisher": "MicrosoftWindowsServer",
-            "offer": "WindowsServer",
-            "sku": "2016-Datacenter-smalldisk",
-            "version": "latest"
-          },
-          "osDisk": {
-            "name": "ServerVirtualMachineOSDisk",
-            "vhd": {
-              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount')), '2016-01-01').primaryEndpoints.blob, 'vhds', '/', take(concat('serverosdisk', uniqueString(resourceGroup().id)), 24), '.vhd')]"
-            },
-            "caching": "ReadWrite",
-            "createOption": "FromImage"
-          }
-        },
-        "networkProfile": {
-          "networkInterfaces": [
-            {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
-            }
-          ]
-        }
-      }
-    },
-    {
       "name": "[variables('DomainControllerVirtualMachineNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[resourceGroup().location]",
@@ -174,7 +112,7 @@
         "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
       ],
       "tags": {
-        "displayName": "DomainControlNic"
+        "displayName": "DcNic"
       },
       "properties": {
         "ipConfigurations": [
@@ -200,7 +138,7 @@
         "[resourceId('Microsoft.Network/networkInterfaces', variables('DomainControllerVirtualMachineNicName'))]"
       ],
       "tags": {
-        "displayName": "DomainControllerVirtualMachine"
+        "displayName": "DcVm"
       },
       "properties": {
         "hardwareProfile": {
@@ -211,8 +149,8 @@
         },
         "osProfile": {
           "computerName": "[variables('DomainControllerVirtualMachineName')]",
-          "adminUsername": "[parameters('ServerVirtualMachineAdminUsername')]",
-          "adminPassword": "[parameters('ServerVirtualMachineAdminPassword')]"
+          "adminUsername": "[parameters('AdminUserName')]",
+          "adminPassword": "[parameters('AdminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -238,6 +176,106 @@
           ]
         }
       }
+    },
+    {
+      "name": "[variables('ServerVirtualMachineNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
+      ],
+      "tags": {
+        "displayName": "ServerVmNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('ServerVirtualMachineSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('ServerVirtualMachineName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
+      ],
+      "tags": {
+        "displayName": "ServerVm"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B2s"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('AvailabilitySetName'))]"
+        },
+        "osProfile": {
+          "computerName": "[variables('ServerVirtualMachineName')]",
+          "adminUsername": "[parameters('AdminUserName')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter-smalldisk",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "ServerVirtualMachineOSDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('MachineVhdStorageAccount')), '2016-01-01').primaryEndpoints.blob, 'vhds', '/', take(concat('serverosdisk', uniqueString(resourceGroup().id)), 24), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ServerVirtualMachineNicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "ServerConfigScripts",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', variables('ServerVirtualMachineName'))]"
+          ],
+          "tags": {
+            "displayName": "ServerConfigScripts"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "[concat(parameters('_artifactsLocation'), '/CustomScripts/ServerConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
+              ],
+               "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ServerConfigScripts.ps1')]"
+           }
+          }
+        }
+      ]
     },
     {
       "name": "[variables('ClientVirtualMachineNicName')]",
@@ -285,8 +323,8 @@
         },
         "osProfile": {
           "computerName": "[variables('ClientVirtualMachineName')]",
-          "adminUsername": "[parameters('ServerVirtualMachineAdminUsername')]",
-          "adminPassword": "[parameters('ServerVirtualMachineAdminPassword')]"
+          "adminUsername": "[parameters('AdminUserName')]",
+          "adminPassword": "[parameters('AdminPassword')]"
         },
         "storageProfile": {
           "imageReference": {
@@ -311,9 +349,35 @@
             }
           ]
         }
-      }
+      },
+      "resources": [
+        {
+          "name": "ClientConfigScripts",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', variables('ClientVirtualMachineName'))]"
+          ],
+          "tags": {
+            "displayName": "ClientConfigScripts"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                "[concat(parameters('_artifactsLocation'), '/CustomScripts/ClientConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
+              ],
+              "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File ', 'CustomScripts/ClientConfigScripts.ps1')]"
+            }
+          }
+        }
+      ]
     }
   ],
-
-  "outputs": {}
+  "outputs": {
+  }
 }
