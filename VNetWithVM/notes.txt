@@ -1,1 +1,6 @@
-﻿https://blogs.technet.microsoft.com/markrenoden/2016/11/24/revisit-deploying-a-dc-to-azure-iaas-with-arm-and-dsc/
+﻿DomainController DSC Examples:
+- https://blogs.technet.microsoft.com/markrenoden/2016/11/24/revisit-deploying-a-dc-to-azure-iaas-with-arm-and-dsc/
+- https://github.com/Azure/azure-quickstart-templates/tree/master/active-directory-new-domain/
+
+Had to save (not install):
+- https://www.powershellgallery.com/packages/xActiveDirectory/2.19.0.0

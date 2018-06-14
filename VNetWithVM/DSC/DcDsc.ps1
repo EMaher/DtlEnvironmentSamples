@@ -1,18 +1,23 @@
 Configuration Main
 {
 
- 
-Param (
-    [string] $NodeName,
-    [string] $domainName,
-    [System.Management.Automation.PSCredential]$domainAdminCredentials
-)
+Param ( [string] $nodeName,
 
-Import-DscResource -ModuleName PSDesiredStateConfiguration
+		[Parameter(Mandatory)]
+        [String]$DomainName,
 
-Node $nodeName
-  {
-   LocalConfigurationManager
+		[System.Management.Automation.PSCredential]
+		$domainAdminCredentials
+ )
+
+Import-DscResource -ModuleName 'PSDesiredStateConfiguration', 'xActiveDirectory'
+
+
+[System.Management.Automation.PSCredential ]$DomainCreds = New-Object System.Management.Automation.PSCredential ("${DomainName}\$($domainAdminCredentials.UserName)", $domainAdminCredentials.Password)
+
+Node localhost
+	{
+		LocalConfigurationManager
         {
             ConfigurationMode = 'ApplyAndAutoCorrect'
             RebootNodeIfNeeded = $true
@@ -67,16 +72,27 @@ Node $nodeName
             Ensure = 'Present'
             Name   = 'GPMC'
         } 
-        xADDomain CreateForest 
+        
+		<#xADDomain CreateForest 
         { 
-            DomainName = $domainName           
+            DomainName = $DomainName           
             DomainAdministratorCredential = $domainAdminCredentials
             SafemodeAdministratorPassword = $domainAdminCredentials
             DatabasePath = "C:\Windows\NTDS"
             LogPath = "C:\Windows\NTDS"
             SysvolPath = "C:\Windows\Sysvol"
             DependsOn = '[WindowsFeature]ADDS_Install'
-        }
-  }
-  
+        }#>
+
+		xADDomain FirstDS 
+        {
+            DomainName = $DomainName
+            DomainAdministratorCredential = $DomainCreds
+            SafemodeAdministratorPassword = $DomainCreds
+			DatabasePath = "C:\Windows\NTDS"
+            LogPath = "C:\Windows\NTDS"
+            SysvolPath = "C:\Windows\Sysvol"
+            DependsOn = '[WindowsFeature]ADDS_Install'
+        } 
+	}
 }

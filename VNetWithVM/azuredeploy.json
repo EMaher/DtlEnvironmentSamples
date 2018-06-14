@@ -23,6 +23,7 @@
     }
   },
   "variables": {
+
     "AvailabilitySetName": "[take(concat('AvailSet-', uniqueString(resourceGroup().id)),80)]",
     "MachineVhdStorageAccount": "[take(concat('vhdstor', tolower(uniqueString(resourceGroup().id))),24)]",
     "VirtualNetworkName": "[take(concat('VNet-', uniqueString(resourceGroup().id)),24)]",
@@ -42,13 +43,18 @@
     "DomainControllerPipName": "[take(concat('dc-pip-', uniqueString(resourceGroup().id)),80)]",
     "DomainControllerPublicIpDnsName": "[take(concat('dc', uniqueString(resourceGroup().id)), 15)]",
 
+    "DomainName": "mydomain.local",
+
+    "DcDscArchiveFolder": "DSC",
+    "DcDscArchiveFileName": "DcDsc.zip",
+    "DcDscDataFileName": "DcDsc.psd1",
+
     "ClientVirtualMachineName": "[take(concat('client-', uniqueString(resourceGroup().id)), 15)]",
     "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "ClientVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]",
     "ClientPublicIpName": "[take(concat('c-pip-', uniqueString(resourceGroup().id)),80)]",
     "ClientPublicIpDnsName": "[take(concat('client', uniqueString(resourceGroup().id)), 15)]"
-
   },
   "resources": [
     {
@@ -202,7 +208,48 @@
             }
           ]
         }
-      }
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', variables('DomainControllerVirtualMachineName'))]"
+          ],
+          "tags": {
+            "displayName": "DcDsc"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "configuration": {
+                "url": "[concat(parameters('_artifactsLocation'), '/', variables('DcDscArchiveFolder'), '/', variables('DcDscArchiveFileName'))]",
+                "script": "DcDsc.ps1",
+                "function": "Main"
+              },
+              "configurationArguments": {
+                "DomainName": "[variables('DomainName')]",
+                "nodeName": "[variables('DomainControllerVirtualMachineName')]",
+                "domainAdminCredentials": {
+                  "UserName": "[parameters('AdminUserName')]",
+                  "Password": "PrivateSettingsRef:Password"
+                }
+              }             
+            },
+            "protectedSettings": {
+              "configurationUrlSasToken": "[parameters('_artifactsLocationSasToken')]",
+              "items": {
+                "Password": "[parameters('AdminPassword')]"
+              }
+            }
+          }
+        }
+      ]
     },
     {
       "name": "[variables('ServerPublicIpName')]",
