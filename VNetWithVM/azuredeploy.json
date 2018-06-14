@@ -39,11 +39,15 @@
     "DomainControllerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "DomainControllerMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "DomainControllerVirtualMachineNicName": "[take(concat('dc-nic-', uniqueString(resourceGroup().id)),80)]",
+    "DomainControllerIpName": "[take(concat('serv-pip-', uniqueString(resourceGroup().id)),80)]",
+    "DomainControllerPublicIpDnsName": "[take(concat('serv', uniqueString(resourceGroup().id)), 15)]",
 
     "ClientVirtualMachineName": "[take(concat('client-', uniqueString(resourceGroup().id)), 15)]",
     "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "ClientVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
-    "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]"
+    "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]",
+    "ClientPublicIpName": "[take(concat('serv-pip-', uniqueString(resourceGroup().id)),80)]",
+    "ClientPublicIpDnsName": "[take(concat('serv', uniqueString(resourceGroup().id)), 15)]"
 
   },
   "resources": [
@@ -107,12 +111,29 @@
       "kind": "Storage"
     },
     {
+      "name": "[variables('DomainControllerPublicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "DcPip"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('DomainControllerPublicIpDnsName')]"
+        }
+      }
+    },
+    {
       "name": "[variables('DomainControllerVirtualMachineNicName')]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[resourceGroup().location]",
       "apiVersion": "2016-03-30",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
       ],
       "tags": {
         "displayName": "DcNic"
@@ -125,6 +146,9 @@
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
                 "id": "[variables('ServerVirtualMachineSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
               }
             }
           }
@@ -294,11 +318,27 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/CustomScripts/ServerConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "PowerShell -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ServerConfigScripts.ps1 -recurse | select -expand FullName)}\""
+              "commandToExecute": "PowerShell.exe -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ServerConfigScripts.ps1 -recurse | select -expand FullName)}\""
             }
           }
         }
       ]
+    },
+    {
+      "name": "[variables('ClientPublicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "clientpublicip"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('ClientPublicIpDnsName')]"
+        }
+      }
     },
     {
       "name": "[variables('ClientVirtualMachineNicName')]",
@@ -306,7 +346,8 @@
       "location": "[resourceGroup().location]",
       "apiVersion": "2016-03-30",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
       ],
       "tags": {
         "displayName": "ClientVmNic"
@@ -319,6 +360,9 @@
               "privateIPAllocationMethod": "Dynamic",
               "subnet": {
                 "id": "[variables('ClientVirtualMachineSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
               }
             }
           }
@@ -339,7 +383,7 @@
       },
       "properties": {
         "hardwareProfile": {
-          "vmSize": "Standard_D2_v2"
+          "vmSize": "Standard_B2s"
         },
         "availabilitySet": {
           "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('AvailabilitySetName'))]"
@@ -353,7 +397,7 @@
           "imageReference": {
             "publisher": "MicrosoftWindowsServer",
             "offer": "WindowsServer",
-            "sku": "2012-R2-Datacenter",
+            "sku": "2016-Datacenter-smalldisk",
             "version": "latest"
           },
           "osDisk": {
@@ -394,7 +438,7 @@
               "fileUris": [
                 "[concat(parameters('_artifactsLocation'), '/CustomScripts/ClientConfigScripts.ps1', parameters('_artifactsLocationSasToken'))]"
               ],
-              "commandToExecute": "PowerShell -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ClientConfigScripts.ps1 -recurse | select -expand FullName)}\""
+              "commandToExecute": "PowerShell.exe -ExecutionPolicy Unrestricted -Command \"& {iex $(gci -Path . -Filter ClientConfigScripts.ps1 -recurse | select -expand FullName)}\""
             }
           }
         }
