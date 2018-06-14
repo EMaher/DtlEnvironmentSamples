@@ -39,15 +39,15 @@
     "DomainControllerVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "DomainControllerMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "DomainControllerVirtualMachineNicName": "[take(concat('dc-nic-', uniqueString(resourceGroup().id)),80)]",
-    "DomainControllerIpName": "[take(concat('serv-pip-', uniqueString(resourceGroup().id)),80)]",
-    "DomainControllerPublicIpDnsName": "[take(concat('serv', uniqueString(resourceGroup().id)), 15)]",
+    "DomainControllerPipName": "[take(concat('dc-pip-', uniqueString(resourceGroup().id)),80)]",
+    "DomainControllerPublicIpDnsName": "[take(concat('dc', uniqueString(resourceGroup().id)), 15)]",
 
     "ClientVirtualMachineName": "[take(concat('client-', uniqueString(resourceGroup().id)), 15)]",
     "ClientVirtualMachineVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
     "ClientVirtualMachineSubnetRef": "[concat(variables('ServerVirtualMachineVnetID'), '/subnets/', variables('VirtualNetworkSubnet1Name'))]",
     "ClientVirtualMachineNicName": "[take(concat('client-nic-', uniqueString(resourceGroup().id)),80)]",
-    "ClientPublicIpName": "[take(concat('serv-pip-', uniqueString(resourceGroup().id)),80)]",
-    "ClientPublicIpDnsName": "[take(concat('serv', uniqueString(resourceGroup().id)), 15)]"
+    "ClientPublicIpName": "[take(concat('c-pip-', uniqueString(resourceGroup().id)),80)]",
+    "ClientPublicIpDnsName": "[take(concat('client', uniqueString(resourceGroup().id)), 15)]"
 
   },
   "resources": [
@@ -111,7 +111,7 @@
       "kind": "Storage"
     },
     {
-      "name": "[variables('DomainControllerPublicIpName')]",
+      "name": "[variables('DomainControllerPipName')]",
       "type": "Microsoft.Network/publicIPAddresses",
       "location": "[resourceGroup().location]",
       "apiVersion": "2016-03-30",
@@ -133,7 +133,7 @@
       "apiVersion": "2016-03-30",
       "dependsOn": [
         "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('DomainControllerPipName'))]"
       ],
       "tags": {
         "displayName": "DcNic"
@@ -148,7 +148,7 @@
                 "id": "[variables('ServerVirtualMachineSubnetRef')]"
               },
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('DomainControllerPipName'))]"
               }
             }
           }
@@ -347,7 +347,7 @@
       "apiVersion": "2016-03-30",
       "dependsOn": [
         "[resourceId('Microsoft.Network/virtualNetworks', variables('VirtualNetworkName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('ClientPublicIpName'))]"
       ],
       "tags": {
         "displayName": "ClientVmNic"
@@ -362,7 +362,7 @@
                 "id": "[variables('ClientVirtualMachineSubnetRef')]"
               },
               "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ServerPublicIpName'))]"
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('ClientPublicIpName'))]"
               }
             }
           }
