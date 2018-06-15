@@ -87,4 +87,7 @@
     <None Include="notes.txt" />
   </ItemGroup>
   <Target Name="GetReferenceAssemblyPaths" />
+  <PropertyGroup>
+    <PostBuildEvent>copy $(TargetDir)\staging\$(ProjectName)\DSC\DcDsc.zip  $(ProjectDir)\DSC\DcDsc.zip</PostBuildEvent>
+  </PropertyGroup>
 </Project>
