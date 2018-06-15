@@ -1,6 +1,9 @@
 ﻿DomainController DSC Examples:
-- https://blogs.technet.microsoft.com/markrenoden/2016/11/24/revisit-deploying-a-dc-to-azure-iaas-with-arm-and-dsc/
 - https://github.com/Azure/azure-quickstart-templates/tree/master/active-directory-new-domain/
+- https://blogs.technet.microsoft.com/markrenoden/2016/11/24/revisit-deploying-a-dc-to-azure-iaas-with-arm-and-dsc/
 
-Had to save (not install):
-- https://www.powershellgallery.com/packages/xActiveDirectory/2.19.0.0
+Important Notes:
+- Credentials have to be passed in very specific way.
+- Resource Group Deployment project create DSC configuration to staging area.  Typically the entire folder is copied and then deployed.  This does not work for DTL environments.  For this reason there is a post-build event that copies the created DTC config zip to be along side the DSC script file (where azuredeploy.json expects it to be).
+- There is a series of PowerShell modules that start with 'x'.  For example https://www.powershellgallery.com/packages/xActiveDirectory/2.19.0.0.  These modules have been modified to use DSC in Azure.  These modules have to be saved (using Save-Module) to the DSC folder to work correctly.
+
