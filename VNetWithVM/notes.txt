@@ -4,3 +4,6 @@
 
 Had to save (not install):
 - https://www.powershellgallery.com/packages/xActiveDirectory/2.19.0.0
+
+ToDo:
+- Automate the creation of the DSC.zip file from output to included in sub-folder for environment.
